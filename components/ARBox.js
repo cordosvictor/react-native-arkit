@@ -6,53 +6,18 @@
 //
 
 import PropTypes from 'prop-types';
-import React, { Component } from 'react';
-import { NativeModules } from 'react-native';
-import id from './lib/id';
-import { parseColorWrapper } from '../parseColor';
 
-const ARBoxManager = NativeModules.ARBoxManager;
+import { material } from './lib/propTypes';
+import createArComponent from './lib/createArComponent';
 
-class ARBox extends Component {
-  identifier = null;
-
-  componentWillMount() {
-    this.identifier = this.props.id || id();
-    parseColorWrapper(ARBoxManager.mount)({
-      id: this.identifier,
-      ...this.props.pos,
-      ...this.props.shader,
-      ...this.props.shape,
-    });
-  }
-
-  componentWillUnmount() {
-    ARBoxManager.unmount(this.identifier);
-  }
-
-  render() {
-    return null;
-  }
-}
-
-ARBox.propTypes = {
-  pos: PropTypes.shape({
-    x: PropTypes.number,
-    y: PropTypes.number,
-    z: PropTypes.number,
-    frame: PropTypes.string,
-  }),
-  shader: PropTypes.shape({
-    metalness: PropTypes.number,
-    roughness: PropTypes.number,
-  }),
+const ARBox = createArComponent('addBox', {
   shape: PropTypes.shape({
     width: PropTypes.number,
     height: PropTypes.number,
     length: PropTypes.number,
     chamfer: PropTypes.number,
-    color: PropTypes.string,
   }),
-};
+  material,
+});
 
-module.exports = ARBox;
+export default ARBox;

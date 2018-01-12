@@ -6,46 +6,17 @@
 //
 
 import PropTypes from 'prop-types';
-import React, { Component } from 'react';
-import { NativeModules } from 'react-native';
-import id from './lib/id';
 
-const ARPyramidManager = NativeModules.ARPyramidManager;
+import { material } from './lib/propTypes';
+import createArComponent from './lib/createArComponent';
 
-class ARPyramid extends Component {
-  identifier = null;
-
-  componentWillMount() {
-    this.identifier = this.props.id || id();
-    ARPyramidManager.mount({
-      id: this.identifier,
-      ...this.props.pos,
-      ...this.props.shape,
-    });
-  }
-
-  componentWillUnmount() {
-    ARPyramidManager.unmount(this.identifier);
-  }
-
-  render() {
-    return null;
-  }
-}
-
-ARPyramid.propTypes = {
-  pos: PropTypes.shape({
-    x: PropTypes.number,
-    y: PropTypes.number,
-    z: PropTypes.number,
-    frame: PropTypes.string,
-  }),
+const ARPyramid = createArComponent('addPyramid', {
   shape: PropTypes.shape({
     width: PropTypes.number,
     length: PropTypes.number,
     height: PropTypes.number,
-    color: PropTypes.string,
   }),
-};
+  material,
+});
 
-module.exports = ARPyramid;
+export default ARPyramid;

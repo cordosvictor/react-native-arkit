@@ -5,8 +5,6 @@
 //  Copyright © 2017 HippoAR. All rights reserved.
 //
 
-import PropTypes from 'prop-types';
-import React, { Component } from 'react';
 import {
   StyleSheet,
   View,
@@ -14,11 +12,17 @@ import {
   NativeModules,
   requireNativeComponent,
 } from 'react-native';
-import { parseColorWrapper } from './parseColor';
+import PropTypes from 'prop-types';
+import React, { Component } from 'react';
+
+import { pickColors, pickColorsFromFile } from './lib/pickColors';
+import { position, transition } from './components/lib/propTypes';
+import generateId from './components/lib/generateId';
 
 const ARKitManager = NativeModules.ARKitManager;
 
 const TRACKING_STATES = ['NOT_AVAILABLE', 'LIMITED', 'NORMAL'];
+
 const TRACKING_REASONS = [
   'NONE',
   'INITIALIZING',
@@ -33,6 +37,14 @@ class ARKit extends Component {
     reason: 0,
     floor: null,
   };
+
+  componentDidMount() {
+    ARKitManager.resume();
+  }
+
+  componentWillUnmount() {
+    ARKitManager.pause();
+  }
 
   render(AR = RCTARKit) {
     let state = null;
@@ -56,10 +68,15 @@ class ARKit extends Component {
       <View style={this.props.style}>
         <AR
           {...this.props}
+          onTapOnPlaneUsingExtent={this.callback('onTapOnPlaneUsingExtent')}
+          onTapOnPlaneNoExtent={this.callback('onTapOnPlaneNoExtent')}
+          onRotationGesture={this.callback('onRotationGesture')}          
           onPlaneDetected={this.callback('onPlaneDetected')}
+          onPlaneRemoved={this.callback('onPlaneRemoved')}
           onPlaneUpdate={this.callback('onPlaneUpdate')}
           onTrackingState={this.callback('onTrackingState')}
-          onBrushStrokeAdded={this.callback('onBrushStrokeAdded')}
+          onARKitError={this.callback('onARKitError')}
+          onEvent={this._onEvent}
         />
         {state}
       </View>
@@ -85,6 +102,18 @@ class ARKit extends Component {
         reason,
         floor: floor ? floor.toFixed(2) : this.state.floor,
       });
+    }
+  };
+
+  _onEvent = event => {
+    let eventName = event.nativeEvent.event;
+    if (!eventName) {
+      return;
+    }
+    eventName = eventName.charAt(0).toUpperCase() + eventName.slice(1);
+    const eventListener = this.props[`on${eventName}`];
+    if (eventListener) {
+      eventListener(event.nativeEvent);
     }
   };
 
@@ -126,33 +155,52 @@ const styles = StyleSheet.create({
   },
 });
 
-ARKit.getCameraPosition = ARKitManager.getCameraPosition;
-ARKit.snapshot = ARKitManager.snapshot;
-ARKit.pause = ARKitManager.pause;
-ARKit.resume = ARKitManager.resume;
-ARKit.addBox = parseColorWrapper(ARKitManager.addBox);
-ARKit.addSphere = parseColorWrapper(ARKitManager.addSphere);
-ARKit.addCylinder = parseColorWrapper(ARKitManager.addCylinder);
-ARKit.addCone = parseColorWrapper(ARKitManager.addCone);
-ARKit.addPyramid = parseColorWrapper(ARKitManager.addPyramid);
-ARKit.addTube = parseColorWrapper(ARKitManager.addTube);
-ARKit.addTorus = parseColorWrapper(ARKitManager.addTorus);
-ARKit.addCapsule = parseColorWrapper(ARKitManager.addCapsule);
-ARKit.addPlane = parseColorWrapper(ARKitManager.addPlane);
-ARKit.addText = parseColorWrapper(ARKitManager.addText);
-ARKit.addModel = ARKitManager.addModel;
-ARKit.addImage = ARKitManager.addImage;
+// copy all ARKitManager properties to ARKit
+Object.keys(ARKitManager).forEach(key => {
+  ARKit[key] = ARKitManager[key];
+});
 
+const addDefaultsToSnapShotFunc = funcName => ({
+  target = 'cameraRoll',
+  format = 'png',
+}) => ARKitManager[funcName]({ target, format });
+
+ARKit.snapshot = addDefaultsToSnapShotFunc('snapshot');
+ARKit.snapshotCamera = addDefaultsToSnapShotFunc('snapshotCamera');
+
+ARKit.exportModel = presetId => {
+  const id = presetId || generateId();
+  const property = { id };
+  return ARKitManager.exportModel(property).then(result => ({ ...result, id }));
+};
+
+ARKit.pickColors = pickColors;
+ARKit.pickColorsFromFile = pickColorsFromFile;
 ARKit.propTypes = {
   debug: PropTypes.bool,
   planeDetection: PropTypes.bool,
-  lightEstimation: PropTypes.bool,
+  origin: PropTypes.shape({
+    position,
+    transition,
+  }),
+  lightEstimationEnabled: PropTypes.bool,
+  autoenablesDefaultLighting: PropTypes.bool,
+  worldAlignment: PropTypes.number,
+  onARKitError: PropTypes.func,
   onPlaneDetected: PropTypes.func,
+  onPlaneRemoved: PropTypes.func,
+  onFeaturesDetected: PropTypes.func,
+  // onLightEstimation is called rapidly, better poll with
+  // ARKit.getCurrentLightEstimation()
+  onLightEstimation: PropTypes.func,
   onPlaneUpdate: PropTypes.func,
   onTrackingState: PropTypes.func,
-  onBrushStrokeAdded: PropTypes.func,
+  onTapOnPlaneUsingExtent: PropTypes.func,
+  onTapOnPlaneNoExtent: PropTypes.func,
+  onRotationGesture: PropTypes.func,
+  onEvent: PropTypes.func,
 };
 
 const RCTARKit = requireNativeComponent('RCTARKit', ARKit);
 
-module.exports = ARKit;
+export default ARKit;

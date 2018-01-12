@@ -6,45 +6,16 @@
 //
 
 import PropTypes from 'prop-types';
-import React, { Component } from 'react';
-import { NativeModules } from 'react-native';
-import id from './lib/id';
 
-const ARTorusManager = NativeModules.ARTorusManager;
+import { material } from './lib/propTypes';
+import createArComponent from './lib/createArComponent';
 
-class ARTorus extends Component {
-  identifier = null;
-
-  componentWillMount() {
-    this.identifier = this.props.id || id();
-    ARTorusManager.mount({
-      id: this.identifier,
-      ...this.props.pos,
-      ...this.props.shape,
-    });
-  }
-
-  componentWillUnmount() {
-    ARTorusManager.unmount(this.identifier);
-  }
-
-  render() {
-    return null;
-  }
-}
-
-ARTorus.propTypes = {
-  pos: PropTypes.shape({
-    x: PropTypes.number,
-    y: PropTypes.number,
-    z: PropTypes.number,
-    frame: PropTypes.string,
-  }),
+const ARTorus = createArComponent('addTorus', {
   shape: PropTypes.shape({
     ringR: PropTypes.number,
     pipeR: PropTypes.number,
-    color: PropTypes.string,
   }),
-};
+  material,
+});
 
-module.exports = ARTorus;
+export default ARTorus;

@@ -6,46 +6,17 @@
 //
 
 import PropTypes from 'prop-types';
-import React, { Component } from 'react';
-import { NativeModules } from 'react-native';
-import id from './lib/id';
 
-const ARTubeManager = NativeModules.ARTubeManager;
+import { material } from './lib/propTypes';
+import createArComponent from './lib/createArComponent';
 
-class ARTube extends Component {
-  identifier = null;
-
-  componentWillMount() {
-    this.identifier = this.props.id || id();
-    ARTubeManager.mount({
-      id: this.identifier,
-      ...this.props.pos,
-      ...this.props.shape,
-    });
-  }
-
-  componentWillUnmount() {
-    ARTubeManager.unmount(this.identifier);
-  }
-
-  render() {
-    return null;
-  }
-}
-
-ARTube.propTypes = {
-  pos: PropTypes.shape({
-    x: PropTypes.number,
-    y: PropTypes.number,
-    z: PropTypes.number,
-    frame: PropTypes.string,
-  }),
+const ARTube = createArComponent('addTube', {
   shape: PropTypes.shape({
     innerR: PropTypes.number,
     outerR: PropTypes.number,
     height: PropTypes.number,
-    color: PropTypes.string,
   }),
-};
+  material,
+});
 
-module.exports = ARTube;
+export default ARTube;

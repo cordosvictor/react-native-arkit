@@ -10,8 +10,13 @@
 #import <SceneKit/SceneKit.h>
 #import <ARKit/ARKit.h>
 
-#import <React/RCTComponent.h>
-#import <React/RCTBridgeModule.h>
+#import "RCTARKitDelegate.h"
+#import "RCTARKitNodes.h"
+
+typedef void (^RCTBubblingEventBlock)(NSDictionary *body);
+typedef void (^RCTARKitResolve)(id result);
+typedef void (^RCTARKitReject)(NSString *code, NSString *message, NSError *error);
+
 
 @interface RCTARKit : UIView
 
@@ -19,23 +24,35 @@
 - (instancetype)initWithARView:(ARSCNView *)arView;
 
 
+@property (nonatomic, strong) NSMutableArray<id<RCTARKitTouchDelegate>> *touchDelegates;
+@property (nonatomic, strong) NSMutableArray<id<RCTARKitRendererDelegate>> *rendererDelegates;
+@property (nonatomic, strong) NSMutableArray<id<RCTARKitSessionDelegate>> *sessionDelegates;
+
 
 #pragma mark - Properties
-@property (nonatomic, strong) ARSCNView* arView;
+@property (nonatomic, strong) ARSCNView *arView;
+@property (nonatomic, strong) RCTARKitNodes *nodeManager;
 
 @property (nonatomic, assign) BOOL debug;
 @property (nonatomic, assign) BOOL planeDetection;
-@property (nonatomic, assign) BOOL lightEstimation;
+@property (nonatomic, assign) BOOL lightEstimationEnabled;
+@property (nonatomic, assign) BOOL autoenablesDefaultLighting;
+@property (nonatomic, assign) NSDictionary* origin;
+@property (nonatomic, assign) ARWorldAlignment worldAlignment;
 
 @property (nonatomic, copy) RCTBubblingEventBlock onPlaneDetected;
+@property (nonatomic, copy) RCTBubblingEventBlock onPlaneRemoved;
+@property (nonatomic, copy) RCTBubblingEventBlock onFeaturesDetected;
+@property (nonatomic, copy) RCTBubblingEventBlock onLightEstimation;
 @property (nonatomic, copy) RCTBubblingEventBlock onPlaneUpdate;
 @property (nonatomic, copy) RCTBubblingEventBlock onTrackingState;
+@property (nonatomic, copy) RCTBubblingEventBlock onTapOnPlaneUsingExtent;
+@property (nonatomic, copy) RCTBubblingEventBlock onTapOnPlaneNoExtent;
+@property (nonatomic, copy) RCTBubblingEventBlock onRotationGesture;
+@property (nonatomic, copy) RCTBubblingEventBlock onEvent;
+@property (nonatomic, copy) RCTBubblingEventBlock onARKitError;
 
-// origins for local frame and camera frame
-@property (nonatomic, strong) SCNNode *localOrigin;
-@property (nonatomic, strong) SCNNode *cameraOrigin;
 
-@property NSMutableDictionary *nodes; // nodes added to the scene
 @property NSMutableDictionary *planes; // plane detected
 
 
@@ -43,40 +60,24 @@
 #pragma mark - Public Method
 - (void)pause;
 - (void)resume;
-- (void)snapshot:(RCTPromiseResolveBlock)resolve reject:(RCTPromiseRejectBlock)reject;
-
+- (void)reset;
+- (void)hitTestPlane:(CGPoint)tapPoint types:(ARHitTestResultType)types resolve:(RCTARKitResolve)resolve reject:(RCTARKitReject)reject;
+- (void)hitTestSceneObjects:(CGPoint)tapPoint resolve:(RCTARKitResolve) resolve reject:(RCTARKitReject)reject;
+- (SCNVector3)projectPoint:(SCNVector3)point;
+- (float)getCameraDistanceToPoint:(SCNVector3)point;
+- (UIImage *)getSnapshot:(NSDictionary*)selection;
+- (UIImage *)getSnapshotCamera:(NSDictionary*)selection;
+- (void)focusScene;
+- (void)clearScene;
 - (NSDictionary *)readCameraPosition;
-
-
-#pragma mark add
-- (void)addBox:(NSDictionary *)property;
-- (void)addSphere:(NSDictionary *)property;
-- (void)addCylinder:(NSDictionary *)property;
-- (void)addCone:(NSDictionary *)property;
-- (void)addPyramid:(NSDictionary *)property;
-- (void)addTube:(NSDictionary *)property;
-- (void)addTorus:(NSDictionary *)property;
-- (void)addCapsule:(NSDictionary *)property;
-- (void)addPlane:(NSDictionary *)property;
-- (void)addText:(NSDictionary *)property;
-- (void)addModel:(NSDictionary *)property;
-- (void)addImage:(NSDictionary *)property;
-
-
-
-#pragma mark - Private
-- (SCNMaterial *)materialFromDiffuseColor:(UIColor *)color;
-- (void)addNodeToScene:(SCNNode *)node property:(NSDictionary *)property;
-- (SCNVector3)getPositionFromProperty:(NSDictionary *)property;
-
-- (void)registerNode:(SCNNode *)node forKey:(NSString *)key;
-- (SCNNode *)nodeForKey:(NSString *)key;
-- (void)removeNodeForKey:(NSString *)key;
-- (SCNNode *)loadModel:(NSURL *)url nodeName:(NSString *)nodeName withAnimation:(BOOL)withAnimation;
+- (NSDictionary *)readCamera;
+- (NSDictionary* )getCurrentLightEstimation;
+- (NSArray * )getCurrentDetectedFeaturePoints;
 
 
 
 #pragma mark - Delegates
+- (void)renderer:(id <SCNSceneRenderer>)renderer didRenderScene:(SCNScene *)scene atTime:(NSTimeInterval)time;
 - (void)renderer:(id <SCNSceneRenderer>)renderer didAddNode:(SCNNode *)node forAnchor:(ARAnchor *)anchor;
 - (void)renderer:(id <SCNSceneRenderer>)renderer willUpdateNode:(SCNNode *)node forAnchor:(ARAnchor *)anchor;
 - (void)renderer:(id <SCNSceneRenderer>)renderer didUpdateNode:(SCNNode *)node forAnchor:(ARAnchor *)anchor;
@@ -95,4 +96,3 @@
 #else
 @compatibility_alias ARKit RCTARKit;
 #endif
-
