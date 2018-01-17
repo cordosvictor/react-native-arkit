@@ -310,6 +310,18 @@ static SCNVector3 toSCNVector3(simd_float4 float4) {
               [RCTConvert setShapeProperties:node.geometry properties:properties[@"shape"]];
         }
         if(properties[@"material"]) {
+            for(id idx in node.childNodes) {
+                SCNNode *rootdNode = (SCNNode *) idx;
+                
+                for(id idx in rootdNode.childNodes) {
+                    SCNNode *childNode = (SCNNode *) idx;
+                    
+                    for(id material in childNode.geometry.materials) {
+                        [RCTConvert setMaterialProperties:material properties:properties[@"material"]];
+                    }
+                }
+            }
+
             for (id material in node.geometry.materials) {
                 [RCTConvert setMaterialProperties:material properties:properties[@"material"]];
             }
